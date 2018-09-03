@@ -21,9 +21,6 @@ namespace MalformedMap
         [SerializeField]
         private float _maxWobble;
 
-        [SerializeField]
-        private BigCube.Side _side = BigCube.Side.Front;
-
         private Vector3 _defaultPosition;
         private Vector3 _oldPosition;
         private Vector3 _targetPosition;

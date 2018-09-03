@@ -8,6 +8,7 @@ namespace MalformedMap
     {
         private const string HorizontalKey = "Horizontal";
         private const string VerticalKey = "Vertical";
+        private const string ActionKey = "Action";
 
         [SerializeField]
         private BigCube _bigCube;
@@ -33,14 +34,18 @@ namespace MalformedMap
 
         private void CheckInput()
         {
-            Vector3 direction = Vector3.zero;
-
-            direction += new Vector3(Input.GetAxisRaw(HorizontalKey), 0, 0);
-            direction += new Vector3(0, Input.GetAxisRaw(VerticalKey), 0);
+            // Rotating the big cube
+            Vector3 direction = new Vector3(Input.GetAxisRaw(HorizontalKey), Input.GetAxisRaw(VerticalKey));
 
             if (direction != Vector3.zero)
             {
-                _bigCube.MovementInput(direction);
+                _bigCube.RotateInput(direction);
+            }
+
+            // Collecting the selected small cubes
+            if (Input.GetButtonDown(ActionKey))
+            {
+                _bigCube.CollectSmallCubesInput();
             }
         }
     }

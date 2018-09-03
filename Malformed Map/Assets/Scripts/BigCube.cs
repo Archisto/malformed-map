@@ -33,6 +33,9 @@ namespace MalformedMap
         private float _rotationDuration;
 
         [SerializeField]
+        private float _collectionDuration;
+
+        [SerializeField]
         private LayerMask _visibleSideMask;
 
         [SerializeField]
@@ -53,7 +56,14 @@ namespace MalformedMap
         [SerializeField]
         private Transform _rotationMarkerBottom;
 
+        [SerializeField]
+        private Vector3 _smallCubeGridOrigin;
+
+        [SerializeField]
+        private float _smallCubeSize;
+
         private SmallCube[] _smallCubes;
+        private SmallCube[] _selectedSmallCubes;
 
         private Vector3 _inputDirection;
         private float elapsedTime;
@@ -78,6 +88,16 @@ namespace MalformedMap
         {
             _smallCubes = transform.GetComponentsInChildren<SmallCube>();
 
+            SetSmallCubeMaterials();
+            SetSmallCubeCoords();
+            SelectVisibleSmallCubes();
+        }
+
+        /// <summary>
+        /// Sets the small cubes' materials at random.
+        /// </summary>
+        private void SetSmallCubeMaterials()
+        {
             foreach (SmallCube sm in _smallCubes)
             {
                 Material material = _smallCubeTypes[0];
@@ -100,16 +120,119 @@ namespace MalformedMap
 
                 sm.SetMaterial(material);
             }
-
-            UpdateSmallCubes();
         }
 
         /// <summary>
-        /// Updates the small cubes.
+        /// Sets the small cubes' coordinates inside the big cube.
         /// </summary>
-        private void UpdateSmallCubes()
+        private void SetSmallCubeCoords()
         {
-            // TODO
+            // TODO: Fix
+
+            foreach (SmallCube sm in _smallCubes)
+            {
+                int x = 0;
+                int y = 0;
+                int z = 0;
+
+                for (int i = 0; i < 4; i++)
+                {
+                    float coord = _smallCubeGridOrigin.x + i * _smallCubeSize;
+
+                    if (sm.transform.localPosition.x == coord)
+                    {
+                        x = i;
+                    }
+                    if (sm.transform.localPosition.y == coord)
+                    {
+                        y = i;
+                    }
+                    if (sm.transform.localPosition.z == coord)
+                    {
+                        z = i;
+                    }
+                }
+
+                sm.Coordinates = new Vector3(x, y, z);
+            }
+        }
+
+        /// <summary>
+        /// Determines which small cubes are visible on camera and thus selected.
+        /// </summary>
+        private void SelectVisibleSmallCubes()
+        {
+            // TODO: Fix wrong cubes being selected.
+
+            //_selectedSmallCubes = new SmallCube[16];
+            //int selectedIndex = 0;
+
+            Vector3 axisFactor = Vector3.zero;
+            int posNum = 0;
+
+            switch (_visibleSide)
+            {
+                case Side.Front:
+                {
+                    axisFactor = Vector3.forward;
+                    posNum = 3;
+                    break;
+                }
+                case Side.Back:
+                {
+                    axisFactor = Vector3.forward;
+                    posNum = 0;
+                    break;
+                }
+                case Side.Left:
+                {
+                    axisFactor = Vector3.right;
+                    posNum = 3;
+                    break;
+                }
+                case Side.Right:
+                {
+                    axisFactor = Vector3.right;
+                    posNum = 0;
+                    break;
+                }
+                case Side.Top:
+                {
+                    axisFactor = Vector3.up;
+                    posNum = 3;
+                    break;
+                }
+                case Side.Bottom:
+                {
+                    axisFactor = Vector3.up;
+                    posNum = 0;
+                    break;
+                }
+            }
+
+            int index = 1;
+            foreach (SmallCube sm in _smallCubes)
+            {
+                Vector3 coord = new Vector3(
+                    sm.Coordinates.x * axisFactor.x,
+                    sm.Coordinates.y * axisFactor.y,
+                    sm.Coordinates.z * axisFactor.z);
+
+                if (coord == posNum * _smallCubeSize * axisFactor)
+                {
+                    sm.Selected = true;
+
+                    Debug.Log(index + ". selected with coord: " + coord);
+                    index++;
+
+                    //_selectedSmallCubes[selectedIndex] = sm;
+                    //selectedIndex++;
+                }
+                else
+                {
+                    sm.Selected = false;
+                }
+            }
         }
 
         /// <summary>
@@ -121,12 +244,21 @@ namespace MalformedMap
             {
                 Rotate();
             }
+            else if (Collecting)
+            {
+                MoveAndGenerateSmallCubes();
+            }
         }
 
         /// <summary>
         /// Is the cube rotating.
         /// </summary>
         private bool Rotating { get; set; }
+
+        /// <summary>
+        /// Are the selected small cubes being collected.
+        /// </summary>
+        private bool Collecting { get; set; }
 
         /// <summary>
         /// Starts rotation.
@@ -143,8 +275,7 @@ namespace MalformedMap
         private void EndRotation()
         {
             Rotating = false;
-            //_oldRotation = transform.rotation;
-            UpdateSmallCubes();
+            SelectVisibleSmallCubes();
         }
 
         /// <summary>
@@ -152,9 +283,6 @@ namespace MalformedMap
         /// </summary>
         private void Rotate()
         {
-            float ratio = elapsedTime / _rotationDuration;
-            //transform.rotation = Quaternion.Lerp(_oldRotation, _targetRotation, ratio);
-
             if (_inputDirection.x != 0)
             {
                 int sign = (_inputDirection.x > 0 ? 1 : -1);
@@ -169,10 +297,60 @@ namespace MalformedMap
             elapsedTime += Time.deltaTime;
             if (elapsedTime >= _rotationDuration)
             {
-                //transform.rotation = _targetRotation;
                 CleanUpRotation();
                 UpdateVisibleSide();
                 EndRotation();
+            }
+        }
+
+        /// <summary>
+        /// Ends collecting small cubes.
+        /// </summary>
+        private void EndCollecting()
+        {
+            Collecting = false;
+            SetSmallCubeCoords();
+            SelectVisibleSmallCubes();
+        }
+
+        /// <summary>
+        /// After collecting selected small cubes,
+        /// moves the remaining ones and generates new ones.
+        /// </summary>
+        private void MoveAndGenerateSmallCubes()
+        {
+            float ratio = elapsedTime / _collectionDuration;
+            bool done = ratio >= 1f;
+            elapsedTime += Time.deltaTime;
+
+            foreach (SmallCube sm in _smallCubes)
+            {
+                if (sm.Collected)
+                {
+                    // Transparency
+                    sm.SetTransparency(ratio);
+
+                    if (done)
+                    {
+                        sm.Regenerate();
+                    }
+                }
+
+                // Position
+                sm.transform.position = Vector3.Lerp(
+                    sm.OldPosition,
+                    sm.OldPosition + new Vector3(0, 0, _smallCubeSize),
+                    ratio);
+
+                if (done)
+                {
+                    sm.transform.position = sm.OldPosition + new Vector3(0, 0, _smallCubeSize);
+                }
+            }
+
+            if (done)
+            {
+                EndCollecting();
             }
         }
 
@@ -214,7 +392,7 @@ namespace MalformedMap
         }
 
         /// <summary>
-        /// Updates the visible side.
+        /// Updates which side is visible.
         /// </summary>
         private void UpdateVisibleSide()
         {
@@ -250,60 +428,41 @@ namespace MalformedMap
         }
 
         /// <summary>
-        /// Sets the target rotation based on the given side.
-        /// </summary>
-        /// <param name="side">The target side</param>
-        /// <returns>A Quaternion rotation</returns>
-        private void SetNewTargetRotation(Side side)
-        {
-            Vector3 direction = Utils.SideToVector3(side);
-            //_targetRotation = Quaternion.LookRotation(direction - transform.position);
-        }
-
-        /// <summary>
-        /// Sets the target rotation based on the given direction
-        /// and which way the cube is facing.
-        /// </summary>
-        /// <param name="direction">The rotation direction</param>
-        /// <returns>A Quaternion rotation</returns>
-        //private void SetNewTargetRotation(Vector3 direction)
-        //{
-        //    // TODO: Fix rotating in wrong directions and getting offset from straight angles
-
-        //    Vector3 frontAxis = transform.worldToLocalMatrix * _cameraDirection;
-        //    topAxis = transform.worldToLocalMatrix * Vector3.up;
-        //    rightAxis = transform.worldToLocalMatrix * Vector3.right;
-
-        //    if (direction.x != 0)
-        //    {
-        //        int sign = (direction.x > 0 ? 1 : -1);
-        //        _rotationDir += Quaternion.AngleAxis(sign * 90, topAxis).eulerAngles;
-        //        _targetRotation = Quaternion.Euler(_rotationDir);
-        //        Debug.Log("Rotating " + (sign > 0 ? "Right" : "Left"));
-        //        Debug.Log("AXIS: " + topAxis);
-        //    }
-        //    else if (direction.y != 0)
-        //    {
-        //        int sign = (direction.y > 0 ? 1 : -1);
-        //        _rotationDir += Quaternion.AngleAxis(sign * 90, rightAxis).eulerAngles;
-        //        _targetRotation = Quaternion.Euler(_rotationDir);
-        //        Debug.Log("Rotating " + (sign > 0 ? "Up" : "Down"));
-        //        Debug.Log("AXIS: " + rightAxis);
-        //    }
-        //}
-
-        /// <summary>
         /// Rotates the cube based on the input direction.
         /// </summary>
-        public void MovementInput(Vector3 direction)
+        public void RotateInput(Vector3 direction)
         {
-            if (Rotating)
+            if (Rotating || Collecting)
             {
                 return;
             }
 
             _inputDirection = direction;
             StartRotation();
+        }
+
+        public void CollectSmallCubesInput()
+        {
+            if (Rotating || Collecting)
+            {
+                return;
+            }
+
+            Collecting = true;
+            elapsedTime = 0;
+
+            foreach (SmallCube sm in _smallCubes)
+            {
+                if (sm.Selected)
+                {
+                    sm.Collect();
+                    GameManager.Instance.CollectedCubeCount++;
+                    Vector3 newPosition = sm.transform.position + new Vector3(0, 0, -4 * _smallCubeSize);
+                    sm.transform.position = newPosition;
+                }
+
+                sm.OldPosition = sm.transform.position;
+            }
         }
 
         private void OnDrawGizmos()
