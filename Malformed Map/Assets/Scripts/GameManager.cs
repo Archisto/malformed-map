@@ -36,7 +36,7 @@ namespace MalformedMap
         [SerializeField]
         private int _maxMisfortune;
 
-        private GameUI UI;
+        private GameUI _UI;
 
         public int MaxMisfortune
         {
@@ -61,12 +61,12 @@ namespace MalformedMap
         }
 
         /// <summary>
-        /// ...
+        /// Initializes the game.
         /// </summary>
         void Awake()
         {
-            UI = FindObjectOfType<GameUI>();
-            if (UI == null)
+            _UI = FindObjectOfType<GameUI>();
+            if (_UI == null)
             {
                 Debug.LogError("GameUI object could not be found in the scene.");
             }
@@ -132,7 +132,7 @@ namespace MalformedMap
         public void EndCollecting()
         {
             TotalActionsTaken++;
-            UI.UpdateUI();
+            _UI.UpdateUI();
         }
     }
 }
