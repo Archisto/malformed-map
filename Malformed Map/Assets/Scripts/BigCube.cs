@@ -18,12 +18,6 @@ namespace MalformedMap
         }
 
         [SerializeField]
-        private List<Material> _smallCubeTypes;
-
-        [SerializeField]
-        private List<Material> _smallCubeTypes_Rare;
-
-        [SerializeField]
         private Side _visibleSide = Side.Front;
 
         [SerializeField]
@@ -77,8 +71,6 @@ namespace MalformedMap
         private void Start()
         {
             InitSmallCubes();
-            //_rotationDir = transform.rotation.eulerAngles;
-            //_oldRotation = transform.rotation;
         }
 
         /// <summary>
@@ -88,37 +80,19 @@ namespace MalformedMap
         {
             _smallCubes = transform.GetComponentsInChildren<SmallCube>();
 
-            SetSmallCubeMaterials();
+            SetSmallCubeTypes();
             SetSmallCubeCoords();
             SelectVisibleSmallCubes();
         }
 
         /// <summary>
-        /// Sets the small cubes' materials at random.
+        /// Sets the small cubes' types at random.
         /// </summary>
-        private void SetSmallCubeMaterials()
+        private void SetSmallCubeTypes()
         {
             foreach (SmallCube sm in _smallCubes)
             {
-                Material material = _smallCubeTypes[0];
-
-                float random = Random.Range(0, 2.5f);
-                if (random < 2f)
-                {
-                    material = _smallCubeTypes[(int) random];
-                }
-                else
-                {
-                    random = Random.Range(0, 2);
-                    if (random == 2f)
-                    {
-                        random = 0f;
-                    }
-
-                    material = _smallCubeTypes_Rare[(int) random];
-                }
-
-                sm.SetMaterial(material);
+                sm.SetType(GameManager.Instance.GetRandomSmallCubeType());
             }
         }
 
@@ -162,76 +136,11 @@ namespace MalformedMap
         /// </summary>
         private void SelectVisibleSmallCubes()
         {
-            // TODO: Fix wrong cubes being selected.
-
-            //_selectedSmallCubes = new SmallCube[16];
-            //int selectedIndex = 0;
-
-            Vector3 axisFactor = Vector3.zero;
-            int posNum = 0;
-
-            switch (_visibleSide)
-            {
-                case Side.Front:
-                {
-                    axisFactor = Vector3.forward;
-                    posNum = 3;
-                    break;
-                }
-                case Side.Back:
-                {
-                    axisFactor = Vector3.forward;
-                    posNum = 0;
-                    break;
-                }
-                case Side.Left:
-                {
-                    axisFactor = Vector3.right;
-                    posNum = 3;
-                    break;
-                }
-                case Side.Right:
-                {
-                    axisFactor = Vector3.right;
-                    posNum = 0;
-                    break;
-                }
-                case Side.Top:
-                {
-                    axisFactor = Vector3.up;
-                    posNum = 3;
-                    break;
-                }
-                case Side.Bottom:
-                {
-                    axisFactor = Vector3.up;
-                    posNum = 0;
-                    break;
-                }
-            }
-
-            int index = 1;
             foreach (SmallCube sm in _smallCubes)
             {
-                Vector3 coord = new Vector3(
-                    sm.Coordinates.x * axisFactor.x,
-                    sm.Coordinates.y * axisFactor.y,
-                    sm.Coordinates.z * axisFactor.z);
-
-                if (coord == posNum * _smallCubeSize * axisFactor)
-                {
-                    sm.Selected = true;
-
-                    Debug.Log(index + ". selected with coord: " + coord);
-                    index++;
-
-                    //_selectedSmallCubes[selectedIndex] = sm;
-                    //selectedIndex++;
-                }
-                else
-                {
-                    sm.Selected = false;
-                }
+                Ray ray = new Ray(sm.transform.position, Vector3.forward);
+                bool raycastHit = Physics.Raycast(ray, _smallCubeSize, _visibleSideMask);
+                sm.Selected = raycastHit;
             }
         }
 
@@ -311,6 +220,7 @@ namespace MalformedMap
             Collecting = false;
             SetSmallCubeCoords();
             SelectVisibleSmallCubes();
+            GameManager.Instance.EndCollecting();
         }
 
         /// <summary>
@@ -456,9 +366,9 @@ namespace MalformedMap
                 if (sm.Selected)
                 {
                     sm.Collect();
-                    GameManager.Instance.CollectedCubeCount++;
                     Vector3 newPosition = sm.transform.position + new Vector3(0, 0, -4 * _smallCubeSize);
                     sm.transform.position = newPosition;
+                    sm.SetType(GameManager.Instance.GetRandomSmallCubeType());
                 }
 
                 sm.OldPosition = sm.transform.position;

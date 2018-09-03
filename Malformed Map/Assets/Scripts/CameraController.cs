@@ -39,8 +39,6 @@ namespace MalformedMap
         /// </summary>
         private void Start()
         {
-            transform.position = _bigCube.transform.position + new Vector3(0, 0, _distance);
-
             _defaultPosition = transform.position;
             _defaultRotation = transform.rotation;
 
@@ -61,6 +59,9 @@ namespace MalformedMap
             }
         }
 
+        /// <summary>
+        /// Starts a wobble to a random position within allowed range.
+        /// </summary>
         private void StartWobble()
         {
             Vector3 randomPos = _defaultPosition + new Vector3(
@@ -77,6 +78,9 @@ namespace MalformedMap
             Wobbling = true;
         }
 
+        /// <summary>
+        /// Ends a wobble.
+        /// </summary>
         private void EndWobble()
         {
             transform.position = _targetPosition;
@@ -85,6 +89,9 @@ namespace MalformedMap
             Wobbling = false;
         }
 
+        /// <summary>
+        /// Resets the camera to its default position and rotation.
+        /// </summary>
         private void ResetDefaultPosAndRot()
         {
             transform.position = _defaultPosition;

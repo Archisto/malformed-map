@@ -16,6 +16,9 @@ namespace MalformedMap
         [SerializeField]
         private CameraController _camera;
 
+        [SerializeField]
+        private bool _invertedBigCubeRotation;
+
         /// <summary>
         /// Initializes the object.
         /// </summary>
@@ -39,6 +42,7 @@ namespace MalformedMap
 
             if (direction != Vector3.zero)
             {
+                direction = (_invertedBigCubeRotation ? -1 * direction : direction);
                 _bigCube.RotateInput(direction);
             }
 

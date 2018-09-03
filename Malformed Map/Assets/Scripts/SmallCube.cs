@@ -6,29 +6,39 @@ namespace MalformedMap
 {
     public class SmallCube : MonoBehaviour
     {
-        public enum Category
+        public enum FormCategory
         {
-            Terraform = 0,
-            Malform = 1,
-            Treasure = 2,
+            Malform = 0,
+            Treasure = 1,
+            Terraform = 2,
             Challenge = 3
         }
 
+        public enum TerraformType
+        {
+            None = 0,
+            Forest = 1,
+            Water = 2
+        }
+
         public Vector3 _coordinates;
+        public FormCategory _category;
 
         private Renderer _renderer;
 
         public Vector3 Coordinates
         {
-            get
-            {
-                return _coordinates;
-            }
-            set
-            {
-                _coordinates = value;
-            }
+            get { return _coordinates; }
+            set { _coordinates = value; }
         }
+
+        public FormCategory Category
+        {
+            get { return _category; }
+            set { _category = value; }
+        }
+
+        public TerraformType Type { get; set; }
 
         public bool Selected { get; set; }
 
@@ -44,19 +54,13 @@ namespace MalformedMap
             _renderer = GetComponent<Renderer>();
         }
 
-        /// <summary>
-        /// Updates the object once per frame.
-        /// </summary>
-        private void Update()
-        {
-
-        }
-
-        public void SetMaterial(Material material)
+        public void SetType(SmallCubeType type)
         {
             if (_renderer != null)
             {
-                _renderer.material = material;
+                Category = type.Category;
+                Type = type.TerraformType;
+                _renderer.material = type.Material;
             }
         }
 
@@ -64,6 +68,7 @@ namespace MalformedMap
         {
             Collected = true;
             SetTransparency(0);
+            GameManager.Instance.CollectCube(this);
         }
 
         public void Regenerate()
@@ -86,12 +91,6 @@ namespace MalformedMap
                 Gizmos.color = Color.yellow;
                 Gizmos.DrawWireCube(transform.position, new Vector3(1.1f, 1.1f, 1.1f));
             }
-
-            //if (Collected)
-            //{
-            //    Gizmos.color = Color.red;
-            //    Gizmos.DrawWireCube(transform.position, new Vector3(1.15f, 1.15f, 1.15f));
-            //}
         }
     }
 }
