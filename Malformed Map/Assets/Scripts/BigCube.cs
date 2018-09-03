@@ -55,13 +55,11 @@ namespace MalformedMap
 
         private SmallCube[] _smallCubes;
 
-        private Vector3 _rotationDir;
-        private Quaternion _targetRotation;
-        private Quaternion _oldRotation;
+        private Vector3 _inputDirection;
         private float elapsedTime;
-
-        Vector3 topAxis = Vector3.up;
-        Vector3 rightAxis = Vector3.right;
+        //private Vector3 _rotationDir;
+        //private Quaternion _targetRotation;
+        //private Quaternion _oldRotation;
 
         /// <summary>
         /// Initializes the object.
@@ -69,10 +67,13 @@ namespace MalformedMap
         private void Start()
         {
             InitSmallCubes();
-            _rotationDir = transform.rotation.eulerAngles;
-            _oldRotation = transform.rotation;
+            //_rotationDir = transform.rotation.eulerAngles;
+            //_oldRotation = transform.rotation;
         }
 
+        /// <summary>
+        /// Initializes the small cubes.
+        /// </summary>
         private void InitSmallCubes()
         {
             _smallCubes = transform.GetComponentsInChildren<SmallCube>();
@@ -103,6 +104,9 @@ namespace MalformedMap
             UpdateSmallCubes();
         }
 
+        /// <summary>
+        /// Updates the small cubes.
+        /// </summary>
         private void UpdateSmallCubes()
         {
             // TODO
@@ -139,7 +143,7 @@ namespace MalformedMap
         private void EndRotation()
         {
             Rotating = false;
-            _oldRotation = transform.rotation;
+            //_oldRotation = transform.rotation;
             UpdateSmallCubes();
         }
 
@@ -149,15 +153,64 @@ namespace MalformedMap
         private void Rotate()
         {
             float ratio = elapsedTime / _rotationDuration;
-            transform.rotation = Quaternion.Lerp(_oldRotation, _targetRotation, ratio);
+            //transform.rotation = Quaternion.Lerp(_oldRotation, _targetRotation, ratio);
+
+            if (_inputDirection.x != 0)
+            {
+                int sign = (_inputDirection.x > 0 ? 1 : -1);
+                transform.Rotate(Vector3.up, sign * 90 * (Time.deltaTime / _rotationDuration), Space.World);
+            }
+            else if (_inputDirection.y != 0)
+            {
+                int sign = (_inputDirection.y > 0 ? 1 : -1);
+                transform.Rotate(Vector3.right, sign * 90 * (Time.deltaTime / _rotationDuration), Space.World);
+            }
 
             elapsedTime += Time.deltaTime;
             if (elapsedTime >= _rotationDuration)
             {
-                transform.rotation = _targetRotation;
+                //transform.rotation = _targetRotation;
+                CleanUpRotation();
                 UpdateVisibleSide();
                 EndRotation();
             }
+        }
+
+        /// <summary>
+        /// Restores the cube's rotation to straight angles.
+        /// </summary>
+        private void CleanUpRotation()
+        {
+            Vector3 rotation = transform.rotation.eulerAngles;
+
+            if (rotation.x % 90 >= 45)
+            {
+                rotation.x = (int) (rotation.x / 90 + 1) * 90;
+            }
+            else
+            {
+                rotation.x = (int) (rotation.x / 90) * 90;
+            }
+
+            if (rotation.y % 90 >= 45)
+            {
+                rotation.y = (int) (rotation.y / 90 + 1) * 90;
+            }
+            else
+            {
+                rotation.y = (int) (rotation.y / 90) * 90;
+            }
+
+            if (rotation.z % 90 >= 45)
+            {
+                rotation.z = (int) (rotation.z / 90 + 1) * 90;
+            }
+            else
+            {
+                rotation.z = (int) (rotation.z / 90) * 90;
+            }
+
+            transform.rotation = Quaternion.Euler(rotation);
         }
 
         /// <summary>
@@ -204,7 +257,7 @@ namespace MalformedMap
         private void SetNewTargetRotation(Side side)
         {
             Vector3 direction = Utils.SideToVector3(side);
-            _targetRotation = Quaternion.LookRotation(direction - transform.position);
+            //_targetRotation = Quaternion.LookRotation(direction - transform.position);
         }
 
         /// <summary>
@@ -213,53 +266,31 @@ namespace MalformedMap
         /// </summary>
         /// <param name="direction">The rotation direction</param>
         /// <returns>A Quaternion rotation</returns>
-        private void SetNewTargetRotation(Vector3 direction)
-        {
-            // TODO: Fix rotating in wrong directions and getting offset from straight angles
+        //private void SetNewTargetRotation(Vector3 direction)
+        //{
+        //    // TODO: Fix rotating in wrong directions and getting offset from straight angles
 
-            Vector3 frontAxis = transform.worldToLocalMatrix * _cameraDirection;
-            topAxis = transform.worldToLocalMatrix * Vector3.up;
-            rightAxis = transform.worldToLocalMatrix * Vector3.right;
+        //    Vector3 frontAxis = transform.worldToLocalMatrix * _cameraDirection;
+        //    topAxis = transform.worldToLocalMatrix * Vector3.up;
+        //    rightAxis = transform.worldToLocalMatrix * Vector3.right;
 
-            if (direction.x != 0)
-            {
-                int sign = (direction.x > 0 ? 1 : -1);
-                _rotationDir += Quaternion.AngleAxis(sign * 90, topAxis).eulerAngles;
-                _targetRotation = Quaternion.Euler(_rotationDir);
-                Debug.Log("Rotating " + (sign > 0 ? "Right" : "Left"));
-                Debug.Log("AXIS: " + topAxis);
-            }
-            else if (direction.y != 0)
-            {
-                int sign = (direction.y > 0 ? 1 : -1);
-                _rotationDir += Quaternion.AngleAxis(sign * 90, rightAxis).eulerAngles;
-                _targetRotation = Quaternion.Euler(_rotationDir);
-                Debug.Log("Rotating " + (sign > 0 ? "Up" : "Down"));
-                Debug.Log("AXIS: " + rightAxis);
-            }
-
-            //Vector3 sideFacingFront = transform.worldToLocalMatrix * (transform.position -_rotationMarkerFront.position);
-
-            //if (direction.x != 0)
-            //{
-            //    if (direction.x > 0)
-            //    {
-            //        _targetRotation = Quaternion.Euler(sideFacingFront );
-            //    }
-            //    else
-            //    {
-
-            //    }
-            //}
-            //else if (direction.y != 0)
-            //{
-            //    int sign = (direction.y > 0 ? 1 : -1);
-            //    _rotationDir += Quaternion.AngleAxis(sign * 90, rightAxis).eulerAngles;
-            //    _targetRotation = Quaternion.Euler(_rotationDir);
-            //    Debug.Log("Rotating " + (sign > 0 ? "Up" : "Down"));
-            //    Debug.Log("AXIS: " + rightAxis);
-            //}
-        }
+        //    if (direction.x != 0)
+        //    {
+        //        int sign = (direction.x > 0 ? 1 : -1);
+        //        _rotationDir += Quaternion.AngleAxis(sign * 90, topAxis).eulerAngles;
+        //        _targetRotation = Quaternion.Euler(_rotationDir);
+        //        Debug.Log("Rotating " + (sign > 0 ? "Right" : "Left"));
+        //        Debug.Log("AXIS: " + topAxis);
+        //    }
+        //    else if (direction.y != 0)
+        //    {
+        //        int sign = (direction.y > 0 ? 1 : -1);
+        //        _rotationDir += Quaternion.AngleAxis(sign * 90, rightAxis).eulerAngles;
+        //        _targetRotation = Quaternion.Euler(_rotationDir);
+        //        Debug.Log("Rotating " + (sign > 0 ? "Up" : "Down"));
+        //        Debug.Log("AXIS: " + rightAxis);
+        //    }
+        //}
 
         /// <summary>
         /// Rotates the cube based on the input direction.
@@ -271,12 +302,8 @@ namespace MalformedMap
                 return;
             }
 
-            //_side = Utils.GetNeighborSide(_side, direction);
-            //SetNewTargetRotation(_side);
-            SetNewTargetRotation(direction);
+            _inputDirection = direction;
             StartRotation();
-
-            //Debug.Log("Next side: " + _side);
         }
 
         private void OnDrawGizmos()
@@ -288,14 +315,6 @@ namespace MalformedMap
             // Line on the front face of the cube
             Gizmos.color = Color.red;
             Gizmos.DrawLine(transform.position, transform.position + transform.forward * 5);
-
-            // Top axis
-            Gizmos.color = Color.green;
-            Gizmos.DrawSphere(transform.position + topAxis * 3, 0.6f);
-
-            // Right axis
-            Gizmos.color = Color.red;
-            Gizmos.DrawSphere(transform.position + -rightAxis * 3, 0.6f);
         }
     }
 }
